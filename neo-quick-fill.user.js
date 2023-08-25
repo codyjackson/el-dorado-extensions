@@ -41,7 +41,7 @@
 
     function fillPrimaryName(cognitoData) {
         let value = cognitoData['Name'];
-        if (cognitoData['Name1'] && (!cognitoData['Name'].includes(cognitoData['Name1']) || !cognitoData['Name1'].includes(cognitoData['Name'])) {
+        if (cognitoData['Name1'] && (!cognitoData['Name'].includes(cognitoData['Name1']) || !cognitoData['Name1'].includes(cognitoData['Name']))) {
             value = cognitoData['Name1'];
         }
         const [firstName, lastName] = value.split(' ');
@@ -140,24 +140,20 @@
     }
 
     function fillSecondaryContact(cognitoData) {
-        const value = '';
-        if (cognitoData['Name1'] && (!cognitoData['Name'].includes(cognitoData['Name1']) || !cognitoData['Name1'].includes(cognitoData['Name'])) {
-            value = cognitoData['Name1'];
-        }
-
+        const value = cognitoData['Name2'];
         const primaryType = cognitoData['Primary Phone Type'];
         const secondaryType = cognitoData['Secondary Phone Type'];
-        if (cognitoData['Name2'] && secondaryType && secondaryType === primaryType) {
-            value = cognitoData['Name2'];
-        }
-
         const [firstName, lastName] = value.split(' ');
+
         fillValue('input[name=secondary_first_name]', firstName);
         fillValue('input[name=secondary_last_name]', lastName);
+
+        if (primaryType === secondaryType) {
+            fillValue('input[name=secondary_telephone1]', cognitoData['Secondary Phone']);
+        }
     }
 
     function appendToNotes(line) {
-        console.log('l', line);
         if (!line) {
             return;
         }
@@ -172,6 +168,17 @@
         textArea.val(notes);
     }
 
+    function includedInTheOther(str1, str2) {
+        if (!str1 || !str2) {
+            return;
+        }
+
+        const a = (str1 || '').trim();
+        const b = (str2 || '').trim();
+
+        return a.includes(b) || b.includes(a);
+    }
+
     function fillAlternateContact(cognitoData) {
         const alternateContactName = cognitoData[`Alternate Contact`];
         const alternateContactPhone = cognitoData[`Alternate Contact Phone`];
@@ -181,10 +188,7 @@
             return;
         }
 
-        if (cognitoData['Name1'] && cognitoData['Name2']) {
-           const formattedRelationship = alternateContactRelationship ? ` (${alternateContactRelationship})` : '';
-           appendToNotes(`${alternateContactName}${formattedRelationship}: ${alternateContactPhone}`);
-        } else {
+        if (includedInTheOther(alternateContactName, cognitoData['Name1']) || includedInTheOther(alternateContactName, cognitoData['Name2'])) {
             const lookup = {
                 'Spouse': '1',
                 'Significant Other': '2',
@@ -201,7 +205,9 @@
            if (type) {
                fillValue('select[name=secondary_type]', lookup[type] || '0');
            }
-
+        } else {
+           const formattedRelationship = alternateContactRelationship ? ` (${alternateContactRelationship})` : '';
+           appendToNotes(`${alternateContactName}${formattedRelationship}: ${alternateContactPhone}`);
         }
     }
 
