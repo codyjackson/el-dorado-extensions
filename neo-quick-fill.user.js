@@ -7,7 +7,6 @@
 // @match        https://us.idexxneo.com/clients/view/*
 // @match        https://us.idexxneo.com/patients/view/*
 // @icon         https://d1u164t7yxgyoz.cloudfront.net/assets/core/ac32f036d8ed3ae5e30427ee05a3fa946bc40b80/public/ico/favicon.png
-// @require      https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js
 // @grant        none
 // ==/UserScript==
 
