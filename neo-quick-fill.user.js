@@ -30,7 +30,7 @@
             console.info(`Couldn't find the element using the selector ${selector}`);
         }
 
-        element.val(value).change();
+        element.val(value.trim()).change();
     }
 
     function createValueFiller(selector) {
@@ -40,7 +40,7 @@
 
     function fillPrimaryName(cognitoData) {
         let value = cognitoData['Name'];
-        if (cognitoData['Name1'] && (!cognitoData['Name'].includes(cognitoData['Name1']) || !cognitoData['Name1'].includes(cognitoData['Name']))) {
+        if (cognitoData['Name1'] && !includedInTheOther(value, cognitoData['Name1'])) {
             value = cognitoData['Name1'];
         }
         const [firstName, lastName] = value.split(' ');
@@ -101,6 +101,8 @@
             return;
         }
 
+        value = value.replaceAll(',,', ',')
+
         const zipRegex = /[0-9]{5}$/g;
         const zipMatch = value.match(zipRegex);
         value = value.slice(0, -5).trim();
@@ -111,9 +113,10 @@
         value = value.replace(stateRegex, '').trim();
         fillValue('input[name=state]', stateMatch[0]);
 
-        const cityRegex = /[a-zA-Z]+,$/g;
+        const cityRegex = /[a-zA-Z ]+,$/g;
         const cityMatch = value.match(cityRegex);
         value = value.replace(cityMatch, '').trim();
+        console.log(value, cityMatch, stateMatch, zipMatch);
         fillValue('input[name=city]', cityMatch[0]?.replaceAll(',', ''));
 
         // Street
@@ -178,6 +181,18 @@
         return a.includes(b) || b.includes(a);
     }
 
+    function getUniqueNameCount(cognitoData) {
+        const totalCount = 1;
+        for (let i = 1; i < 3; ++i) {
+            const name = cognitoData[`Name${i}`];
+            if (name && !includedInTheOther(name, cognitoData[`Name`])) {
+                ++totalCount;
+            }
+        }
+
+        return totalCount;
+    }
+
     function fillAlternateContact(cognitoData) {
         const alternateContactName = cognitoData[`Alternate Contact`];
         const alternateContactPhone = cognitoData[`Alternate Contact Phone`];
@@ -187,7 +202,7 @@
             return;
         }
 
-        if (includedInTheOther(alternateContactName, cognitoData['Name1']) || includedInTheOther(alternateContactName, cognitoData['Name2'])) {
+        if (getUniqueNameCount(cognitoData) < 2) {
             const lookup = {
                 'Spouse': '1',
                 'Significant Other': '2',
@@ -354,6 +369,11 @@
 
         const content = $('<div></div>');
         content.html(pastedText);
+
+        if (window.location.pathname === '/clients/view/12') {
+            appendToNotes(content.html());
+            return;
+        }
 
         const rows = content.find('tr').toArray();
         const columnsInRow = rows.map(row => {
