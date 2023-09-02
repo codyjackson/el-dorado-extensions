@@ -10,6 +10,8 @@
 // @grant        none
 // ==/UserScript==
 
+const testData = ``;
+
 (function() {
     'use strict';
 
@@ -20,7 +22,15 @@
         false: 'No',
     };
 
-    function fillValue(selector, value) {
+    function capitalizeFirstLetter(str) {
+        return str.toLowerCase().charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function capitalizeFirstLetterOfEachWord(str) {
+        return str.toLowerCase().split(' ').map(capitalizeFirstLetter).join(' ');
+    }
+
+    function fillValue(selector, value, upperCasing = true) {
         if (typeof value === 'undefined' || value === null) {
             return;
         }
@@ -30,7 +40,8 @@
             console.info(`Couldn't find the element using the selector ${selector}`);
         }
 
-        element.val(value.trim()).change();
+        const modify = upperCasing ? capitalizeFirstLetterOfEachWord : s => s.toLowerCase();
+        element.val(modify(value.trim())).change();
     }
 
     function createValueFiller(selector) {
@@ -55,13 +66,13 @@
         const secondaryNumber = cognitoData['Secondary Phone'];
 
         const lookup = {
-            'Cell': 'input[name=telephone1]',
-            'Home': 'input[name=telephone2]',
-            'Work': 'input[name=telephone3]'
+            'Cell': 'input[name=telephone3]',
+            'Home': 'input[name=telephone1]',
+            'Work': 'input[name=telephone2]'
         };
 
         fillValue(lookup[primaryType], primaryNumber);
-
+        console.log('aaaa', secondaryType)
         if (!secondaryType || !secondaryNumber) {
             return;
         }
@@ -89,7 +100,7 @@
             appendToNotes(email);
             fillValue('#client_email', '');
         } else {
-            fillValue('#client_email', email);
+            fillValue('#client_email', email, false);
         }
         
         $('#unsubscribed').prop('checked', !subscribedToPromotionalEmail);
@@ -116,7 +127,6 @@
         const cityRegex = /[a-zA-Z ]+,$/g;
         const cityMatch = value.match(cityRegex);
         value = value.replace(cityMatch, '').trim();
-        console.log(value, cityMatch, stateMatch, zipMatch);
         fillValue('input[name=city]', cityMatch[0]?.replaceAll(',', ''));
 
         // Street
@@ -136,6 +146,7 @@
     function fillPrimaryClient(cognitoData) {
         fillPrimaryName(cognitoData);
         fillPrimaryEmail(cognitoData);
+        fillPrimaryPhoneNumbers(cognitoData);
         fillPrimaryAddress(cognitoData);
         fillPrimarySeasonal(cognitoData);
         fillPrimaryPhotos(cognitoData);
@@ -368,7 +379,7 @@
         pastedText = e.clipboardData.getData('text/html');
 
         const content = $('<div></div>');
-        content.html(pastedText);
+        content.html(/*testData*/ pastedText);
 
         if (window.location.pathname === '/clients/view/12') {
             appendToNotes(content.html());
@@ -387,15 +398,17 @@
         const counts = {};
 
         rawData.forEach(([key, value]) => {
-            let currentKey = key;
+            let currentKey = key.replace(/\s+/g, ' ');
             if (typeof counts[currentKey] === 'number') {
                 counts[currentKey]++;
                 currentKey = `${key}${counts[currentKey]}`;
             } else {
                 counts[key] = 0;
             }
-            enteredCognitoData[currentKey] = value;
+            enteredCognitoData[currentKey] = value.replace(/\s+/g, ' ');
         });
+
+        console.log('form data', enteredCognitoData);
 
         if (window.location.pathname.includes('/patients/view')) {
             preparePatientInfo(enteredCognitoData);
