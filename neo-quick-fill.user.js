@@ -30,7 +30,7 @@ const testData = ``;
         return str.toLowerCase().split(' ').map(capitalizeFirstLetter).join(' ');
     }
 
-    function fillValue(selector, value, upperCasing = true) {
+    function fillValue(selector, value, upperCasing = true, trimValue = true) {
         if (typeof value === 'undefined' || value === null) {
             return;
         }
@@ -41,7 +41,8 @@ const testData = ``;
         }
 
         const modify = upperCasing ? capitalizeFirstLetterOfEachWord : s => s.toLowerCase();
-        element.val(modify(value.trim())).change();
+        const trim = trimValue ? (s) => s.trim() : (s) => s;
+        element.val(modify(trim(value))).change();
     }
 
     function createValueFiller(selector) {
@@ -209,7 +210,7 @@ const testData = ``;
         const alternateContactPhone = cognitoData[`Alternate Contact Phone`];
         const alternateContactRelationship = cognitoData[`Alternate Contact Relationship to Client`];
 
-        if (!alternateContactName || !alternateContactPhone) {
+        if (!alternateContactName) {
             return;
         }
 
@@ -228,7 +229,7 @@ const testData = ``;
 
            const type = cognitoData['Alternate Contact Relationship to Client'];
            if (type) {
-               fillValue('select[name=secondary_type]', lookup[type] || '0');
+               fillValue('select[name=secondary_type]', lookup[type] || '0', true, false);
            }
         } else {
            const formattedRelationship = alternateContactRelationship ? ` (${alternateContactRelationship})` : '';
@@ -252,7 +253,7 @@ const testData = ``;
             'Google': ' Google',
             'Yelp': ' Yelp'
         };
-        fillValue('select[name=marketing]', lookup[input]);
+        fillValue('select[name=marketing]', lookup[input], true, false);
     }
 
     function fillPrimaryReferredBy(cognitoData) {
@@ -300,7 +301,7 @@ const testData = ``;
     }
 
     function showPatientBreed(cognitoData, index) {
-        const breed = cognitoData[pkey('Breed', index)];
+        const breed = cognitoData[pkey('Breed', index)] || `&ltempty&gt`;
 
         insertFormData(breed, '#breedId+.select2');
     }
@@ -323,7 +324,7 @@ const testData = ``;
         }
         const sex = lookup[`${gender}-${fixed}`];
 
-        fillValue('select[name=gender_id]', sex);
+        fillValue('select[name=gender_id]', sex, true, false);
     }
 
     function fillPatientInfo(cognitoData, index) {
@@ -375,11 +376,10 @@ const testData = ``;
         };
         e.preventDefault();
 
-        var pastedText = ''
-        pastedText = e.clipboardData.getData('text/html');
+        const pastedText = testData || e.clipboardData.getData('text/html');
 
         const content = $('<div></div>');
-        content.html(/*testData*/ pastedText);
+        content.html(pastedText);
 
         if (window.location.pathname === '/clients/view/12') {
             appendToNotes(content.html());
@@ -401,10 +401,11 @@ const testData = ``;
             let currentKey = key.replace(/\s+/g, ' ');
             if (typeof counts[currentKey] === 'number') {
                 counts[currentKey]++;
-                currentKey = `${key}${counts[currentKey]}`;
+                currentKey = `${currentKey}${counts[currentKey]}`;
             } else {
-                counts[key] = 0;
+                counts[currentKey] = 0;
             }
+
             enteredCognitoData[currentKey] = value.replace(/\s+/g, ' ');
         });
 
