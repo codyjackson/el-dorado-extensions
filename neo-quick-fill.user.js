@@ -17,10 +17,6 @@ const testData = ``;
 
     let acceptingForm = false;
     const quickFillId = 'quick-fill-button';
-    const YES_NO = {
-        true: 'Yes',
-        false: 'No',
-    };
 
     function capitalizeFirstLetter(str) {
         return str.toLowerCase().charAt(0).toUpperCase() + str.slice(1);
@@ -40,9 +36,16 @@ const testData = ``;
             console.info(`Couldn't find the element using the selector ${selector}`);
         }
 
-        const modify = upperCasing ? capitalizeFirstLetterOfEachWord : s => s.toLowerCase();
+
+
+
+        const modify = upperCasing ? capitalizeFirstLetterOfEachWord : s => s;
         const trim = trimValue ? (s) => s.trim() : (s) => s;
-        element.val(modify(trim(value))).change();
+        const modifiedValue = modify(trim(value));
+        if (selector.includes('marketing')) {
+            console.log(element, modifiedValue);
+        }
+        element.val(modifiedValue).change();
     }
 
     function createValueFiller(selector) {
@@ -72,17 +75,16 @@ const testData = ``;
             'Work': 'input[name=telephone2]'
         };
 
-        fillValue(lookup[primaryType], primaryNumber);
-        console.log('aaaa', secondaryType)
+        fillValue(lookup[primaryType], formatPhoneNumber(primaryNumber));
         if (!secondaryType || !secondaryNumber) {
             return;
         }
 
 
         if (secondaryType !== primaryType) {
-            fillValue(lookup[secondaryType], secondaryNumber);
+            fillValue(lookup[secondaryType], formatPhoneNumber(secondaryNumber));
         } else {
-            fillValue('input[name=secondary_telephone1]', secondaryNumber);
+            fillValue('input[name=secondary_telephone1]', formatPhoneNumber(secondaryNumber));
         }
     }
 
@@ -93,6 +95,11 @@ const testData = ``;
         if (!email) {
             return;
         }
+
+        const YES_NO = {
+            true: 'Yes',
+            false: '',
+        };
 
         const declinesEmail = cognitoData[`May we email regarding your pet's care and reminders for services due?`] !== 'Yes';
         fillValue('input[name=EXTRAFIELD_Declines_Email_]', YES_NO[declinesEmail]);
@@ -163,8 +170,20 @@ const testData = ``;
         fillValue('input[name=secondary_last_name]', lastName);
 
         if (primaryType === secondaryType) {
-            fillValue('input[name=secondary_telephone1]', cognitoData['Secondary Phone']);
+            fillValue('input[name=secondary_telephone1]', formatPhoneNumber(cognitoData['Secondary Phone']));
         }
+    }
+
+    function formatPhoneNumber(numberStr) {
+        const digits = numberStr.replaceAll(/\D/g, '');
+        if (digits.length !== 10) {
+            return digits;
+        }
+        const area = digits.slice(0, 3);
+        const first = digits.slice(3, 6);
+        const second = digits.slice(6, 10);
+
+        return `${area}-${first}-${second}`;
     }
 
     function appendToNotes(line) {
@@ -225,7 +244,7 @@ const testData = ``;
            const [firstName, lastName] = alternateContactName.split(' ');
            fillValue('input[name=secondary_first_name]', firstName);
            fillValue('input[name=secondary_last_name]', lastName);
-           fillValue('input[name=secondary_telephone1]', alternateContactPhone);
+           fillValue('input[name=secondary_telephone1]', formatPhoneNumber(alternateContactPhone));
 
            const type = cognitoData['Alternate Contact Relationship to Client'];
            if (type) {
@@ -233,7 +252,7 @@ const testData = ``;
            }
         } else {
            const formattedRelationship = alternateContactRelationship ? ` (${alternateContactRelationship})` : '';
-           appendToNotes(`${alternateContactName}${formattedRelationship}: ${alternateContactPhone}`);
+           appendToNotes(`${alternateContactName}${formattedRelationship}: ${formatPhoneNumber(alternateContactPhone)}`);
         }
     }
 
@@ -247,13 +266,16 @@ const testData = ``;
             return;
         }
 
+
+
         const lookup = {
             'Employee': ' Employee',
             'Location / Drive by': ' Drive By /Signage',
             'Google': ' Google',
             'Yelp': ' Yelp'
         };
-        fillValue('select[name=marketing]', lookup[input], true, false);
+
+        fillValue('select[name=marketing]', lookup[input], false, false);
     }
 
     function fillPrimaryReferredBy(cognitoData) {
@@ -449,6 +471,34 @@ const testData = ``;
                $('.patient-btn').remove();
            }
         });
+
+        /*if (window.location.pathname.includes('/patients/view')) {
+            setInterval(() => {
+                $(`.consultation-list-item`).each((i, item) => {
+                    const headers = $(item).find('.table-header td').toArray().map(e => $(e).text());
+                    const expectedPersecriptiopnHeaders = 'Qty,Product / Service,Provider,Staff,Date,Price';
+
+                    if (headers.join(',') === expectedPersecriptiopnHeaders) {
+                       if ($(item).find('.clipboard-button').length === 0) {
+                           const button = $(`<span class="btn clipboard-button" style="margin-top: -7px;">Copy For Spreadsheet</span>`);
+                           button.on('click', () => {
+                               const notes = $(item).find('.consultation-list-item-notes').text();
+                               console.log('clickers', notes);
+
+                               const date = new Date();
+                               const currentDate = `${date.getMonth()+1}/${date.getDate()}/${(date.getFullYear()+'').slice(2)}`;
+                               const clientLastName = $('input[name="last_name"]').val();
+                               const patientName = $('input[name="patient_name"]').val();
+                               const columns = ['JR', currentDate, clientLastName, patientName];
+                               navigator.clipboard.writeText(columns.join('\t'));
+                           });
+                           $(item).find('.consultation-list-item-header-row .pull-right').prepend(button)
+                       }
+
+                    }
+                });
+            }, 500);
+        }*/
 
         const buttonGroup = $(`<span class="btn-group" role="group" style="margin-right: 10px;"></span>`);
         buttonGroup.prepend(quickFillButton);
