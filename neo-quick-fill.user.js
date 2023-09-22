@@ -36,15 +36,9 @@ const testData = ``;
             console.info(`Couldn't find the element using the selector ${selector}`);
         }
 
-
-
-
         const modify = upperCasing ? capitalizeFirstLetterOfEachWord : s => s;
         const trim = trimValue ? (s) => s.trim() : (s) => s;
         const modifiedValue = modify(trim(value));
-        if (selector.includes('marketing')) {
-            console.log(element, modifiedValue);
-        }
         element.val(modifiedValue).change();
     }
 
@@ -52,13 +46,17 @@ const testData = ``;
         return (value) => fillValue(selector, value);
     }
 
-
-    function fillPrimaryName(cognitoData) {
+    function getPrimaryName(cognitoData) {
         let value = cognitoData['Name'];
         if (cognitoData['Name1'] && !includedInTheOther(value, cognitoData['Name1'])) {
             value = cognitoData['Name1'];
         }
-        const [firstName, lastName] = value.split(' ');
+        return (value || '').split(' ');
+    }
+
+
+    function fillPrimaryName(cognitoData) {
+        const [firstName, lastName] = getPrimaryName(cognitoData);
         fillValue('#txtFirstname', firstName);
         fillValue('#txtLastname', lastName);
     }
@@ -160,17 +158,24 @@ const testData = ``;
         fillPrimaryPhotos(cognitoData);
     }
 
+    function getSecondaryName(cognitoData) {
+        let value = cognitoData['Name2'];
+        if (cognitoData['Name1'] && !includedInTheOther(value, cognitoData['Name1'])) {
+            value = cognitoData['Name'];
+        }
+        return (value || '').split(' ');
+    }
+
     function fillSecondaryContact(cognitoData) {
-        const value = cognitoData['Name2'];
         const primaryType = cognitoData['Primary Phone Type'];
         const secondaryType = cognitoData['Secondary Phone Type'];
-        const [firstName, lastName] = value.split(' ');
+        let [firstName, lastName] = getSecondaryName(cognitoData);
 
         fillValue('input[name=secondary_first_name]', firstName);
         fillValue('input[name=secondary_last_name]', lastName);
 
-        if (primaryType === secondaryType) {
-            fillValue('input[name=secondary_telephone1]', formatPhoneNumber(cognitoData['Secondary Phone']));
+        if (primaryType === secondaryType || !cognitoData['Secondary Phone']) {
+            fillValue('input[name=secondary_telephone1]', formatPhoneNumber(cognitoData['Secondary Phone'] || cognitoData[`Alternate Contact Phone`] || cognitoData['Primary Phone']));
         }
     }
 
@@ -212,16 +217,30 @@ const testData = ``;
         return a.includes(b) || b.includes(a);
     }
 
-    function getUniqueNameCount(cognitoData) {
-        const totalCount = 1;
+    function getUniqueFirstNameCount(cognitoData) {
+        let totalCount = 1;
         for (let i = 1; i < 3; ++i) {
-            const name = cognitoData[`Name${i}`];
-            if (name && !includedInTheOther(name, cognitoData[`Name`])) {
+            const [firstNameI] = (cognitoData[`Name${i}`] || '').split(' ');
+            const [primaryFirst] = (cognitoData[`Name`] || '').split(' ');
+            if (firstNameI && !includedInTheOther(firstNameI, primaryFirst)) {
                 ++totalCount;
             }
         }
 
         return totalCount;
+    }
+
+    function nameIsIncluded(name, cognitoData) {
+        for (let i = 0; i < 3; ++i) {
+            const suffix = i === 0 ? '' : i;
+            const [firstNameI] = (cognitoData[`Name${suffix}`] || '').split(' ');
+
+            if (includedInTheOther(name, firstNameI)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function fillAlternateContact(cognitoData) {
@@ -233,7 +252,8 @@ const testData = ``;
             return;
         }
 
-        if (getUniqueNameCount(cognitoData) < 2) {
+        const [firstName, lastName] = alternateContactName.split(' ');
+        if (getUniqueFirstNameCount(cognitoData) < 2 || nameIsIncluded(firstName, cognitoData)) {
             const lookup = {
                 'Spouse': '1',
                 'Significant Other': '2',
@@ -241,7 +261,7 @@ const testData = ``;
                 'Friend': '4',
                 'Other': '5'
             };
-           const [firstName, lastName] = alternateContactName.split(' ');
+           
            fillValue('input[name=secondary_first_name]', firstName);
            fillValue('input[name=secondary_last_name]', lastName);
            fillValue('input[name=secondary_telephone1]', formatPhoneNumber(alternateContactPhone));
