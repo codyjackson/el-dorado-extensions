@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neo Quick Fill
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  Quick Fill Neo from Cognito Forms
 // @author       You
 // @match        https://us.idexxneo.com/clients/view/*
@@ -98,7 +98,7 @@ const testData = ``;
         } else {
             fillValue('#client_email', email, false);
         }
-        
+
         $('#unsubscribed').prop('checked', !subscribedToPromotionalEmail);
     }
 
@@ -388,7 +388,8 @@ const testData = ``;
 
     $(document).ready(() => {
         const user = $('.navbar .navbar-inner .nav .dropdown-toggle').text();
-        if (!user.includes('Jenna Roller')) {
+        const authorizedUsers = ['Jenna Roller', 'Becca Hollis'];
+        if (!authorizedUsers.some(authorizedUser => user.includes(authorizedUser))) {
             return;
         }
 
